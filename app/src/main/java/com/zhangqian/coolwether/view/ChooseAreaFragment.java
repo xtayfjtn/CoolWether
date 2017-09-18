@@ -2,6 +2,7 @@ package com.zhangqian.coolwether.view;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -16,6 +17,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.zhangqian.coolwether.R;
+import com.zhangqian.coolwether.WeatherActivity;
 import com.zhangqian.coolwether.db.City;
 import com.zhangqian.coolwether.db.County;
 import com.zhangqian.coolwether.db.Province;
@@ -103,10 +105,16 @@ public class ChooseAreaFragment extends Fragment {
                     selectedProvince = provinceList.get(position);
                     queryCities();
                 }
-//                else if (currentLevel == LEVEL_CITY) {
-//                    selectedCity = cityList.get(position);
-//                    queryCounties();
-//                }
+                else if (currentLevel == LEVEL_CITY) {
+                    selectedCity = cityList.get(position);
+                    queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    String weatherId = countyList.get(position).getWeatherId();
+                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                    intent.putExtra("weather_id", weatherId);
+                    startActivity(intent);
+                    getActivity().finish();
+                }
             }
         });
         
@@ -144,21 +152,22 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     private void queryCounties() {
-        titleText.setText(selectedProvince.getPrivinceName());
+        titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
-        cityList = DataSupport.where("provinceid = ?", String.valueOf(selectedProvince.getId())).find(City.class);
-        if (cityList.size() > 0) {
+        countyList = DataSupport.where("cityid = ?", String.valueOf(selectedCity.getId())).find(County.class);
+        if (countyList.size() > 0) {
             dataList.clear();
-            for (City city : cityList) {
-                dataList.add(city.getCityName());
+            for (County county : countyList) {
+                dataList.add(county.getCountyName());
             }
             adapter.notifyDataSetChanged();
             listView.setSelection(0);
-            currentLevel = LEVEL_CITY;
+            currentLevel = LEVEL_COUNTY;
         } else {
-            String provinceCode = selectedProvince.getPrivinceName();
-            String address = "https://api.seniverse.com/v3/location/search.json?key=knxe9lycbgjpjstv&q=" + provinceCode;
-            queryFromServer(address, "city");
+            int provinceCode = selectedProvince.getProvinceCode();
+            int cityCode = selectedCity.getCityCode();
+            String address = "http://guolin.tech/api/china/" + provinceCode + "/" + cityCode;
+            queryFromServer(address, "county");
         }
     }
 
@@ -175,8 +184,8 @@ public class ChooseAreaFragment extends Fragment {
             listView.setSelection(0);
             currentLevel = LEVEL_CITY;
         } else {
-            String provinceCode = selectedProvince.getPrivinceName();
-            String address = "https://api.seniverse.com/v3/location/search.json?key=knxe9lycbgjpjstv&q=" + provinceCode;
+            int provinceCode = selectedProvince.getProvinceCode();
+            String address = "http://guolin.tech/api/china/" + provinceCode;
             queryFromServer(address, "city");
         }
     }
